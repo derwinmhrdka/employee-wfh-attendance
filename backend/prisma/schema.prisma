@@ -1,0 +1,46 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  employee_id Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  phone       String?
+  photo       String?
+  position    String?
+  status      String   @default("active")
+  password    String
+  is_admin    Boolean  @default(false)
+
+  created_at  DateTime @default(now())
+  update_at   DateTime @updatedAt
+
+  attendances Attendance[]
+  log_updates LogUpdateProfile[]
+}
+
+model Attendance {
+  id          Int      @id @default(autoincrement())
+  employee_id Int
+  date        DateTime
+  in_time     DateTime?
+  out_time    DateTime?
+
+  user User @relation(fields: [employee_id], references: [employee_id])
+}
+
+model LogUpdateProfile {
+  id          Int      @id @default(autoincrement())
+  employee_id Int
+  old_value   String?
+  new_value   String?
+  updated_at  DateTime @default(now())
+
+  user User @relation(fields: [employee_id], references: [employee_id])
+}

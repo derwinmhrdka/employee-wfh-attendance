@@ -9,10 +9,12 @@ exports.getEmployees = async (req, res, next) => {
   try {
     const { employeeId } = req.query;
 
+    const whereClause = employeeId
+      ? { employee_id: Number(employeeId) }
+      : undefined;
+
     const result = await prisma.user.findMany({
-      where: employeeId
-        ? { employee_id: Number(employeeId) } 
-        : {}, 
+      where: whereClause,
       orderBy: {
         employee_id: 'asc',
       },
@@ -38,12 +40,12 @@ exports.getEmployees = async (req, res, next) => {
 
 exports.createEmployee = async (req, res, next) => {
   try {
-    const {
+    let {
       name, email, phone, photo, position, isAdmin, status, password
     } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required.' });
+    if (!name || !email || !position || !status) {
+      return res.status(400).json({ message: 'Name, email, position, and status are required.' });
     }
 
     const check = await prisma.user.findUnique({
@@ -52,6 +54,10 @@ exports.createEmployee = async (req, res, next) => {
 
     if (check) {
       return res.status(409).json({ message: 'Email already exists.' });
+    }
+
+    if (!password) {
+      password = 'WHATT072025'; // Set a default password if not provided
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

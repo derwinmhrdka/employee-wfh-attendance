@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const { success } = require('../utils/responseHelper');
 const User = require('../models/userModel');
 const prisma = require('../config/prismaClient');
+const { publish } = require('../queue/publisher');
 
 exports.getProfile = async (req, res, next) => {
   try {
@@ -122,6 +123,12 @@ exports.clockInOut = async (req, res, next) => {
         });
       }
 
+      await publish('attendance_log', {
+        type: 'clock_in',
+        employeeId,
+        timestamp: now,
+      });
+
       return success(res, 'Clock-in successful', saved);
     }
 
@@ -134,9 +141,15 @@ exports.clockInOut = async (req, res, next) => {
       }
 
       saved = await prisma.attendance.update({
-          where: { id: attendance.id },
-          data: { out_time: now },
-        });
+        where: { id: attendance.id },
+        data: { out_time: now },
+      });
+
+      await publish('attendance_log', {
+        type: 'clock_out',
+        employeeId,
+        timestamp: now,
+      });
 
       return success(res, 'Clock-out successful', saved);
     }

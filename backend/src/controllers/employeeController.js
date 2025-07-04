@@ -28,36 +28,38 @@ exports.getProfile = async (req, res, next) => {
 exports.editProfile = async (req, res, next) => {
   try {
     const { employeeId } = req.user;
-    const { phone, photo, oldPassword, newPassword } = req.body;
+    const body = req.body || {};
+    const { phone, oldPassword, newPassword } = body;
+    const photoPath = req.file ? `/uploads/profile/${req.file.filename}` : null
 
-    if (!phone && !photo && !newPassword) {
+    if (!phone && !photoPath && !newPassword) {
       return res.status(400).json({ message: 'No fields to update' });
     }
 
     const updateData = {};
 
     if (phone) updateData.phone = phone;
-    if (photo) updateData.photo = photo;
+    if (photoPath) updateData.photo = photoPath;
 
     if (newPassword) {
       if (!oldPassword) {
         return res.status(400).json({ message: 'Old password is required to change password' });
       }
 
-      const userPassword = await prisma.user.findUnique(
+      const user = await prisma.user.findUnique(
         { where: { employee_id: Number(employeeId) }
       });
 
-      if (!userPassword) {
+      if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      const isMatch = await bcrypt.compare(oldPassword, userPassword);
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
       if (!isMatch) {
         return res.status(400).json({ message: 'Old password is incorrect' });
       }
 
-      updateData.newPassword = await bcrypt.hash(newPassword, 10);
+      updateData.password = await bcrypt.hash(newPassword, 10);
     }
 
     const result = await prisma.user.update({

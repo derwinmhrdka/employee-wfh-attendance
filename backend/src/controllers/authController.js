@@ -52,6 +52,8 @@ exports.loginAdmin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
+    console.log("BODY:", req.body);
+
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }

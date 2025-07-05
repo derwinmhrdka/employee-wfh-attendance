@@ -24,7 +24,6 @@ export default function LoginPage() {
       const res = await axios.post(endpoint, { email, password })
 
       localStorage.setItem('token', res.data.data.token)
-      console.log('Login success:', res.data)   
 
       if (role === 'Admin') {
         localStorage.setItem('name', res.data.data.admin.name) 

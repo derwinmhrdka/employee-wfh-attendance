@@ -16,7 +16,6 @@ class Attendance {
       clockIn: this.clockIn,
       clockOut: this.clockOut,
       name: this.name,
-      email: this.email
     };
   }
 }

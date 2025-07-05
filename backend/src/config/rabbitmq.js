@@ -1,11 +1,12 @@
 const amqp = require('amqplib');
+const logger = require('../utils/logger');
 
 let channel;
 
 async function connectRabbitMQ() {
   const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://localhost');
   channel = await connection.createChannel();
-  console.log('RabbitMQ connected');
+  logger.info('RabbitMQ connected');
   return channel;
 }
 
@@ -16,7 +17,7 @@ async function publishToQueue(queue, message) {
 
   await channel.assertQueue(queue, { durable: true });
   channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)), { persistent: true });
-  console.log(`Sent message to "${queue}":`, message);
+  logger.error(`Sent message to "${queue}":`, message);
 }
 
 module.exports = {

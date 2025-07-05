@@ -1,11 +1,9 @@
-const pool = require('../config/db');
-const bcrypt = require('bcrypt');
-const { success } = require('../utils/responseHelper');
+const { success, error } = require('../utils/responseHelper');
 const User = require('../models/userModel');
 const prisma = require('../config/prismaClient');
-const timeHelper = require('../utils/timeHelper'); 
+const timeHelper = require('../utils/timeHelper');
 const { publishUpdateProfileLog } = require('../queue/publisher');
-
+const logger = require('../utils/logger');
 
 exports.getProfile = async (req, res, next) => {
   try {
@@ -16,71 +14,60 @@ exports.getProfile = async (req, res, next) => {
     });
 
     if (!result) {
-      return res.status(404).json({ message: 'User not found' });
+      return error(res, 'User not found', 404);
     }
 
     const employee = new User(result);
 
     return success(res, 'Profile fetched successfully', employee.toJSON());
   } catch (err) {
+    logger.error('getProfile failed', err);
     next(err);
   }
 };
 
 exports.editProfile = async (req, res, next) => {
+  const prisma = require('../config/prismaClient');
+  const bcrypt = require('bcrypt');
+
   try {
     const { employeeId } = req.user;
-    const body = req.body || {};
-    const { phone, oldPassword, newPassword } = body;
+    const { phone, oldPassword, newPassword } = req.body || {};
     const photoPath = req.file ? req.file.filename : null;
 
-    if (!phone && !photoPath && !newPassword) {
-      return res.status(400).json({ message: 'No fields to update' });
-    }
+    await prisma.$transaction(async (tx) => {
+      const oldUser = await tx.user.findUnique({
+        where: { employee_id: Number(employeeId) },
+      });
 
-    const updateData = {};
-
-    const oldUser = await prisma.user.findUnique({
-      where: { employee_id: Number(employeeId) },
-    });
-
-    if (!oldUser) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (phone) updateData.phone = phone;
-    if (photoPath) updateData.photo = photoPath;
-
-    if (newPassword) {
-      if (!oldPassword) {
-        return res.status(400).json({ message: 'Old password is required to change password' });
+      if (!oldUser) {
+        throw { status: 404, message: 'User not found' };
       }
 
-      const isMatch = await bcrypt.compare(oldPassword, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ message: 'Old password is incorrect' });
+      const updateData = {};
+      if (phone) updateData.phone = phone;
+      if (photoPath) updateData.photo = photoPath;
+
+      if (newPassword) {
+        const isMatch = await bcrypt.compare(oldPassword, oldUser.password);
+        if (!isMatch) {
+          throw { status: 400, message: 'Old password is incorrect' };
+        }
+        updateData.password = await bcrypt.hash(newPassword, 10);
       }
 
-      updateData.password = await bcrypt.hash(newPassword, 10);
-    }
+      const updatedUser = await tx.user.update({
+        where: { employee_id: Number(employeeId) },
+        data: updateData,
+      });
 
-    const updatedUser = await prisma.user.update({
-      where: { employee_id: Number(employeeId) },
-      data: updateData,
+      await publishUpdateProfileLog(oldUser, updatedUser, employeeId);
+
+      return success(res, 'Profile updated successfully', updatedUser);
     });
 
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const updated = await prisma.user.findUnique({
-      where: { employee_id: Number(employeeId) },
-    });
-
-    await publishUpdateProfileLog(oldUser, updated, employeeId);
-
-    return success(res, 'Profile updated successfully', updatedUser);
   } catch (err) {
+    logger.error('editProfile failed', err);
     next(err);
   }
 };
@@ -91,74 +78,60 @@ exports.clockInOut = async (req, res, next) => {
     const { type } = req.body;
 
     if (!type || !['clock_in', 'clock_out'].includes(type)) {
-      return res.status(400).json({ message: 'Invalid type. Use clock_in or clock_out' });
+      return error(res, 'Invalid type. Use clock_in or clock_out', 400);
     }
 
     const now = timeHelper().tz('Asia/Jakarta');
     const today = new Date(now.format('YYYY-MM-DD'));
     const timestamp = now.toDate();
 
-    const result = await prisma.attendance.findFirst({
-      where: {employee_id: Number(employeeId), date: today}
+    const attendance = await prisma.attendance.findFirst({
+      where: { employee_id: Number(employeeId), date: today }
     });
-
-    const attendance = result;
 
     if (type === 'clock_in') {
       if (attendance && attendance.in_time) {
-        return res.status(400).json({ message: 'Already clocked in today.' });
+        return error(res, 'Already clocked in today.', 400);
       }
 
       let saved;
-
       if (attendance) {
         saved = await prisma.attendance.update({
           where: { id: attendance.id },
-          data: { in_time: timestamp  },
+          data: { in_time: timestamp },
         });
       } else {
         saved = await prisma.attendance.create({
           data: {
             employee_id: employeeId,
             date: today,
-            in_time: timestamp ,
+            in_time: timestamp,
           },
         });
       }
-
-      await publish('attendance_log', {
-        type: 'clock_in',
-        employeeId,
-        timestamp: timestamp ,
-      });
 
       return success(res, 'Clock-in successful', saved);
     }
 
     if (type === 'clock_out') {
       if (!attendance || !attendance.in_time) {
-        return res.status(400).json({ message: 'You must clock in before clocking out.' });
+        return error(res, 'You must clock in before clocking out.', 400);
       }
       if (attendance.out_time) {
-        return res.status(400).json({ message: 'Already clocked out today.' });
+        return error(res, 'Already clocked out today.', 400);
       }
 
-      saved = await prisma.attendance.update({
+      const saved = await prisma.attendance.update({
         where: { id: attendance.id },
-        data: { out_time: timestamp  },
-      });
-
-      await publish('attendance_log', {
-        type: 'clock_out',
-        employeeId,
-        timestamp: timestamp ,
+        data: { out_time: timestamp },
       });
 
       return success(res, 'Clock-out successful', saved);
     }
 
-    return res.status(400).json({ message: 'Invalid request.' });
+    return error(res, 'Invalid request.', 400);
   } catch (err) {
+    logger.error('clockInOut failed', err);
     next(err);
   }
 };
@@ -169,14 +142,12 @@ exports.getAttendance = async (req, res, next) => {
     const now = timeHelper().tz('Asia/Jakarta');
     const today = new Date(now.format('YYYY-MM-DD'));
 
-    const result = await prisma.attendance.findFirst({
+    const attendance = await prisma.attendance.findFirst({
       where: {
         employee_id: Number(employeeId),
         date: today
       },
     });
-
-    const attendance = result;
 
     let status = 'Not clocked in';
     if (attendance?.in_time && !attendance?.out_time) {
@@ -192,6 +163,7 @@ exports.getAttendance = async (req, res, next) => {
       status
     });
   } catch (err) {
+    logger.error('getAttendance failed', err);
     next(err);
   }
 };
@@ -202,28 +174,24 @@ exports.attendanceSummary = async (req, res, next) => {
     const { dateFrom, dateTo } = req.query;
 
     if ((dateFrom && !dateTo) || (!dateFrom && dateTo)) {
-      return res.status(400).json({ message: 'Both dateFrom and dateTo must be provided' });
+      return error(res, 'Both dateFrom and dateTo must be provided', 400);
     }
 
-    const startOfDay = new Date(dateTo)
-    startOfDay.setHours(0, 0, 0, 0)
+    const startOfDay = new Date(dateFrom);
+    startOfDay.setHours(0, 0, 0, 0);
 
-    const endOfDay  = new Date(dateTo)
-    endOfDay .setHours(23, 59, 59, 999)
+    const endOfDay = new Date(dateTo);
+    endOfDay.setHours(23, 59, 59, 999);
 
     const result = await prisma.attendance.findMany({
       where: {
         employee_id: Number(employeeId),
-        ...(startOfDay && endOfDay && {
-          date: {
-            gte: new Date(startOfDay),
-            lte: new Date(endOfDay)
-          }
-        })
+        date: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
       },
-      orderBy: {
-        date: 'desc'
-      },
+      orderBy: { date: 'desc' },
       select: {
         date: true,
         in_time: true,
@@ -232,10 +200,11 @@ exports.attendanceSummary = async (req, res, next) => {
     });
 
     return success(res, 'Attendance summary fetched', {
-      total: result.rowCount,
+      total: result.length,
       summary: result
     });
   } catch (err) {
+    logger.error('getAttendanceSummary failed', err);
     next(err);
   }
 };

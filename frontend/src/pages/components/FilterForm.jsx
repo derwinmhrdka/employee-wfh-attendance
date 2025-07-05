@@ -42,8 +42,6 @@ export default function FilterForm({
 
       const res = await axios.get(apiEndpoint, { headers, params })
 
-      console.log('API Response:', res.data.data)
-
       const data =
         mode === 'employee' 
         ? res.data.data.summary 

@@ -1,5 +1,6 @@
 const amqp = require('amqplib');
-
+const config = require('../config/config');
+const logger = require('../utils/logger');
 const QUEUE_NAME = 'update_profile_log';
 
 async function publishUpdateProfileLog(oldData, newData, employeeId) {
@@ -35,14 +36,14 @@ async function publishUpdateProfileLog(oldData, newData, employeeId) {
       }
     }
 
-    console.log('[Publisher] Payloads:', payloads);
+    logger.info('[Publisher] Payloads:', payloads);
 
     if (payloads.length === 0) {
-      console.log('[Publisher] No changes detected.');
+      logger.info('[Publisher] No changes detected.');
       return;
     }
 
-    const connection = await amqp.connect(process.env.RABBITMQ_URL);
+    const connection = await amqp.connect(config.rabbitUrl);
     const channel = await connection.createChannel();
     await channel.assertQueue(QUEUE_NAME, { durable: true });
 
@@ -50,16 +51,16 @@ async function publishUpdateProfileLog(oldData, newData, employeeId) {
       channel.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(payload)), {
         persistent: true,
       });
-      console.log('[Publisher] Published change for:', payload.changed_field);
+      logger.info('[Publisher] Published change for:', payload.changed_field);
     }
 
     await channel.close();
     await connection.close();
 
-    console.log('[Publisher] All changes published to queue:', QUEUE_NAME);
+    logger.info('[Publisher] All changes published to queue:', QUEUE_NAME);
 
   } catch (err) {
-    console.error('[Publisher] Failed:', err);
+    logger.error('[Publisher] Failed:', err);
   }
 }
 

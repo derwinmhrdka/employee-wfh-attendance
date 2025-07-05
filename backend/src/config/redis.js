@@ -1,19 +1,15 @@
 const Redis = require('ioredis');
-require('dotenv').config(); 
+const config = require('../config/config');
+const logger = require('../utils/logger');
 
-const redis = new Redis({
-  host: process.env.REDIS_HOST,
-  port: process.env.REDIS_PORT,
-  password: process.env.REDIS_PASSWORD || undefined,
-  db: process.env.REDIS_DATABASE ? Number(process.env.REDIS_DATABASE) : 0,
-});
+const redis = new Redis(config.redisUrl); 
 
 redis.on('connect', () => {
-  console.log('✅ Redis connected');
+  logger.info('Redis connected');
 });
 
 redis.on('error', (err) => {
-  console.error('❌ Redis connection error:', err);
+  logger.error('Redis connection error:', err);
 });
 
 module.exports = redis;

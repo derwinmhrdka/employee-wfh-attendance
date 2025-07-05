@@ -1,23 +1,38 @@
-const { connectRabbitMQ } = require('../config/rabbitmq');
+const amqp = require('amqplib');
+const prisma = require('../config/prismaClient');
 
-async function consume(queueName, callback) {
-  const conn = await connectRabbitMQ();
-  const channel = await conn.createChannel();
+const QUEUE_NAME = 'update_profile_log';
 
-  await channel.assertQueue(queueName, { durable: true });
+async function startConsumer() {
+  try {
+    const connection = await amqp.connect(process.env.RABBITMQ_URL);
+    const channel = await connection.createChannel();
+    await channel.assertQueue(QUEUE_NAME, { durable: true });
 
-  channel.consume(queueName, async (msg) => {
-    if (msg !== null) {
-      const content = JSON.parse(msg.content.toString());
-      console.log(`[x] Received:`, content);
+    console.log('[Consumer] Waiting for messages...');
 
-      await callback(content);
+    channel.consume(QUEUE_NAME, async (msg) => {
+      if (msg !== null) {
+        const payload = JSON.parse(msg.content.toString());
+        console.log('[Consumer] Received payload:', payload);
 
-      channel.ack(msg);
-    }
-  });
+        await prisma.logUpdateProfile.create({
+          data: {
+            employee_id: payload.employeeId,
+            old_value: String(payload.old_value),
+            new_value: String(payload.new_value),
+            changed_field: payload.changed_field,
+            updated_at: payload.updated_at,
+          },
+        });
 
-  console.log(` [*] Waiting for messages in ${queueName}`);
+        console.log(`[Consumer] Saved log for field: ${payload.changed_field}`);
+        channel.ack(msg);
+      }
+    });
+  } catch (err) {
+    console.error('[Consumer] Failed:', err);
+  }
 }
 
-module.exports = { consume };
+startConsumer();

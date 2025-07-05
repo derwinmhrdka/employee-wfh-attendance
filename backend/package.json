@@ -17,6 +17,7 @@
     "cookie": "^0.7.2",
     "cookie-signature": "^1.2.2",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
     "debug": "^4.4.1",
     "depd": "^2.0.0",
     "dotenv": "^17.0.1",
@@ -108,7 +109,8 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "start:consumer": "node src/queue/consumer.js"
   },
   "keywords": [],
   "author": "",

@@ -1,13 +1,66 @@
-const { connectRabbitMQ } = require('../config/rabbitmq');
+const amqp = require('amqplib');
 
-async function publish(queueName, message) {
-  const conn = await connectRabbitMQ();
-  const channel = await conn.createChannel();
+const QUEUE_NAME = 'update_profile_log';
 
-  await channel.assertQueue(queueName, { durable: true });
-  channel.sendToQueue(queueName, Buffer.from(JSON.stringify(message)));
+async function publishUpdateProfileLog(oldData, newData, employeeId) {
+  try {
+    oldData = oldData || {};
+    newData = newData || {};
 
-  console.log(`[x] Sent to ${queueName}:`, message);
+    const trackedFields = [
+      'name',
+      'email',
+      'phone',
+      'photo',
+      'password',
+      'position',
+      'active',
+      'status'
+    ];
+
+    const payloads = [];
+
+    for (const field of trackedFields) {
+      const oldValue = oldData[field] ?? null;
+      const newValue = newData[field] ?? null;
+
+      if (oldValue !== newValue) {
+        payloads.push({
+          employeeId: Number(employeeId),
+          old_value: oldValue,
+          new_value: newValue,
+          changed_field: field,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    console.log('[Publisher] Payloads:', payloads);
+
+    if (payloads.length === 0) {
+      console.log('[Publisher] No changes detected.');
+      return;
+    }
+
+    const connection = await amqp.connect(process.env.RABBITMQ_URL);
+    const channel = await connection.createChannel();
+    await channel.assertQueue(QUEUE_NAME, { durable: true });
+
+    for (const payload of payloads) {
+      channel.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(payload)), {
+        persistent: true,
+      });
+      console.log('[Publisher] Published change for:', payload.changed_field);
+    }
+
+    await channel.close();
+    await connection.close();
+
+    console.log('[Publisher] All changes published to queue:', QUEUE_NAME);
+
+  } catch (err) {
+    console.error('[Publisher] Failed:', err);
+  }
 }
 
-module.exports = { publish };
+module.exports = { publishUpdateProfileLog };

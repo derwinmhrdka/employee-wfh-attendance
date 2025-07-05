@@ -26,7 +26,12 @@ export default function LoginPage() {
       localStorage.setItem('token', res.data.data.token)
       console.log('Login success:', res.data)   
 
-      navigate('/dashboard')
+      if (role === 'Admin') {
+        localStorage.setItem('name', res.data.data.admin.name) 
+        navigate('/dashboard-admin')
+      } else {
+        navigate('/dashboard')
+      }
 
     } catch (err) {
       console.error(err)

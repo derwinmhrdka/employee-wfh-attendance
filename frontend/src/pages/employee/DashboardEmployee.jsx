@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { Link } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEdit } from '@fortawesome/free-solid-svg-icons'
+import { FaEdit } from 'react-icons/fa'
+import EmployeeModal from '../components/EmployeeModal'
 
 export default function DashboardEmployeePage() {
   const [profile, setProfile] = useState(null)
@@ -12,8 +11,7 @@ export default function DashboardEmployeePage() {
 
   // Modal State
   const [showModal, setShowModal] = useState(false)
-  const [photo, setPhoto] = useState(null);
-
+  const [photo, setPhoto] = useState(null)
   const [editData, setEditData] = useState({
     name: '',
     email: '',
@@ -90,18 +88,14 @@ export default function DashboardEmployeePage() {
       oldPassword: '',
       newPassword: '',
     })
+    setPhoto(null)
     setShowModal(true)
   }
 
   const closeModal = () => setShowModal(false)
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setEditData(prev => ({ ...prev, [name]: value }))
-  }
-
   const handleSave = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
 
     const token = localStorage.getItem('token')
     const headers = { Authorization: `Bearer ${token}` }
@@ -122,10 +116,10 @@ export default function DashboardEmployeePage() {
       )
       alert('Profile updated')
       closeModal()
-      fetchData() 
+      fetchData()
     } catch (err) {
       console.error(err)
-      alert('Update failed, '+ (err.response?.data?.message || 'An error occurred'))
+      alert('Update failed: ' + (err.response?.data?.message || 'An error occurred'))
     }
   }
 
@@ -142,13 +136,12 @@ export default function DashboardEmployeePage() {
         { headers }
       )
       alert(`${type === 'clock_in' ? 'Clock In' : 'Clock Out'} successful`)
-      fetchData() 
+      fetchData()
     } catch (err) {
       console.error(err)
-      alert(`Failed to ${type}, ` + (err.response?.data?.message || 'An error occurred'))
+      alert(`Failed to ${type}: ` + (err.response?.data?.message || 'An error occurred'))
     }
   }
-
 
   if (loading) return <div className="container mt-5">Loading...</div>
 
@@ -156,7 +149,7 @@ export default function DashboardEmployeePage() {
     <div className="container mt-4">
       {/* Header */}
       <div className="mb-2 text-end">
-        <button className="btn btn-primary mb-2" onClick={handleLogout}>
+        <button className="btn btn-secondary mb-2" onClick={handleLogout}>
           Logout
         </button>
       </div>
@@ -165,7 +158,7 @@ export default function DashboardEmployeePage() {
         <p className="mb-0">{formatDateTime(currentTime)}</p>
       </div>
 
-      {/* Card Profile & Attendance sejajar */}
+      {/* Card Profile & Attendance */}
       <div className="row d-flex align-items-start">
         {/* Profile Card */}
         <div className="col-md-6 mb-4 px-3">
@@ -175,7 +168,7 @@ export default function DashboardEmployeePage() {
               {profile?.photo && (
                 <div className="mb-3 d-flex justify-content-center">
                   <img
-                    src={`${import.meta.env.VITE_BASE_URL}${profile.photo}`}
+                    src={`${import.meta.env.VITE_BASE_URL}/uploads/profile/${profile.photo}`}
                     alt="Employee"
                     className="rounded-circle border border-3"
                     style={{ width: '150px', height: '150px', objectFit: 'cover' }}
@@ -221,122 +214,31 @@ export default function DashboardEmployeePage() {
                 disabled={attendance?.clockIn && attendance?.clockOut}>
                 {attendance?.clockIn
                   ? attendance?.clockOut
-                    ? 'Clock In' : 'Clock Out' 
-                  : 'Clock In' 
-                }
+                    ? 'Clock In' : 'Clock Out'
+                  : 'Clock In'}
               </button>
-              <button className="btn btn-outline-primary w-100" onClick={() => window.location.href = '/attendance-summary'}
-                >Attendance Summary</button>
+              <button className="btn btn-outline-primary w-100"
+                onClick={() => window.location.href = '/attendance-summary'}>
+                Attendance Summary
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* MODAL */}
-      {showModal && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="modal-backdrop show"
-            style={{
-              backdropFilter: 'blur(5px)',
-              backgroundColor: 'rgb(0, 0, 0)',
-              position: 'fixed',
-              top: 0, left: 0, right: 0, bottom: 0,
-              zIndex: 1040
-            }}
-          ></div>
-            <div className="modal show d-block" tabIndex="-1">
-              <div className="modal-dialog">
-                <div className="modal-content">
-                  <form onSubmit={handleSave}>
-                    <div className="modal-header">
-                      <h5 className="modal-title">Edit Profile</h5>
-                      <button type="button" className="btn-close" onClick={closeModal}></button>
-                    </div>
-                    <div className="modal-body">
-                      {/* Preview gambar */}
-                      <div className="mb-3 d-flex justify-content-center">                   
-                        <div style={{ position: 'relative', display: 'inline-block' }}>
-                          {/* Foto preview */}
-                          <img
-                            src={
-                              photo
-                                ? URL.createObjectURL(photo)
-                                : profile?.photo
-                                  ? `${import.meta.env.VITE_BASE_URL}${profile.photo}`
-                                  : 'https://via.placeholder.com/150'
-                            }
-                            alt="Preview"
-                            className="rounded-circle border border-3"
-                            style={{ width: '150px', height: '150px', objectFit: 'cover', cursor: 'pointer' }}
-                            onClick={() => document.getElementById('photoInput').click()}
-                          />
-
-                          {/* Icon edit */}
-                          <span
-                            onClick={() => document.getElementById('photoInput').click()}
-                            style={{
-                              position: 'absolute',
-                              bottom: 0,
-                              right: 0,
-                              backgroundColor: '#007bff',
-                              color: '#fff',
-                              borderRadius: '50%',
-                              padding: '5px',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                          >
-                            <FontAwesomeIcon icon={faEdit} />
-                          </span>
-                        </div>
-
-                        <input
-                          id="photoInput"
-                          type="file"
-                          name="photo"
-                          className="form-control d-none"
-                          onChange={(e) => setPhoto(e.target.files[0])}
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label>Name</label>
-                        <input name="name" className="form-control" value={editData.name} readOnly/>
-                      </div>
-                      <div className="mb-3">
-                        <label>Email</label>
-                        <input name="email" className="form-control" value={editData.email} readOnly/>
-                      </div>
-                      <div className="mb-3">
-                        <label>Position</label>
-                        <select name="position" className="form-select" value={editData.position} disabled>
-                          <option>{editData.position}</option>
-                        </select>
-                      </div>
-                      <div className="mb-3">
-                        <label>Phone</label>
-                        <input name="phone" className="form-control" value={editData.phone} onChange={handleInputChange} />
-                      </div>
-                      <div className="mb-3">
-                        <label>Current Password</label>
-                        <input name="oldPassword" type="password" className="form-control" value={editData.oldPassword} onChange={handleInputChange} />
-                      </div>
-                      <div className="mb-3">
-                        <label>New Password</label>
-                        <input name="newPassword" type="password" className="form-control" value={editData.newPassword} onChange={handleInputChange} />
-                      </div>
-                    </div>
-                    <div className="modal-footer">
-                      <button type="submit" className="btn btn-primary w-100">
-                        Save</button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-        </>
-      )}
+      {/* Modal Reusable */}
+      <EmployeeModal
+        show={showModal}
+        onClose={closeModal}
+        onSave={handleSave}
+        data={editData}
+        setData={setEditData}
+        photo={photo}
+        profilePhoto={profile?.photo}
+        setPhoto={setPhoto}
+        context="employee"
+        isEdit = {true}
+      />
     </div>
   )
 }

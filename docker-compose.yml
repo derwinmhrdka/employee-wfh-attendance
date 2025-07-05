@@ -11,6 +11,15 @@ services:
       - "5433:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+  
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672" 
+      - "15672:15672" 
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
 
 volumes:
   db_data:

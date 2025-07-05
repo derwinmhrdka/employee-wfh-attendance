@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const { success } = require('../utils/responseHelper');
 const User = require('../models/userModel');
 const Attendance = require('../models/attendanceModel');
+const Logs = require('../models/logModel');
 
 exports.getEmployees = async (req, res, next) => {
   try {
@@ -41,8 +42,10 @@ exports.getEmployees = async (req, res, next) => {
 exports.createEmployee = async (req, res, next) => {
   try {
     let {
-      name, email, phone, photo, position, isAdmin, status, password
+      name, email, phone, position, isAdmin, status, password
     } = req.body;
+
+    const photoPath = req.file ? req.file.filename : null;
 
     if (!name || !email || !position || !status) {
       return res.status(400).json({ message: 'Name, email, position, and status are required.' });
@@ -67,9 +70,9 @@ exports.createEmployee = async (req, res, next) => {
         name: name,
         email: email,
         phone: phone || null,
-        photo: photo || null,
+        photo: photoPath,
         position: position || null,
-        is_admin: isAdmin === true, 
+        is_admin: isAdmin === 'true' || isAdmin === true, 
         status: status || 'active',
         password: hashedPassword,
       },
@@ -97,6 +100,8 @@ exports.editEmployee = async (req, res, next) => {
     const { employeeId } = req.params;
     const { name, phone, photo, position, status, password } = req.body;
 
+    const photoPath = req.file ? req.file.filename : null;
+
     if (!admin?.isAdmin) {
       return res.status(403).json({ message: 'Forbidden: Only admin can edit employees.' });
     }
@@ -109,7 +114,7 @@ exports.editEmployee = async (req, res, next) => {
 
     if (name) updateData.name = name;
     if (phone) updateData.phone = phone;
-    if (photo) updateData.photo = photo;
+    if (photoPath) updateData.photo = photoPath;
     if (position) updateData.position = position;
     if (status) updateData.status = status;
     if (password) {
@@ -177,12 +182,21 @@ exports.getAttendances = async (req, res, next) => {
           },
         },
       },
-      orderBy: {
-        date: 'desc',
-      },
+      orderBy: [
+        { date: 'desc' },
+        { in_time: 'desc' }, 
+        { out_time: 'desc' },
+        { id: 'asc' }
+      ]
     });
 
-    const attendance = result.map(row => new Attendance(row).toJSON());
+    const attendance = result.map(row => {
+      const plain = new Attendance(row).toJSON()
+      return {
+        ...plain,
+        name: row.user?.name || null
+      }
+    })
 
     return success(res, 'Attendance records fetched successfully', {
       total: attendance.length,
@@ -192,3 +206,29 @@ exports.getAttendances = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getLogs = async (req, res, next) => {
+  try {
+      const { employeeId } = req.params;
+      
+      const result = await prisma.LogUpdateProfile.findMany({
+        where: { employee_id: Number(employeeId) },
+        orderBy: {
+          updated_at: 'desc'
+        },
+        select: {
+          employee_id: true,
+          old_value: true,
+          new_value: true,
+          changed_field: true,
+          updated_at:true,
+        }
+      });
+
+      const logs = result.map(row => new Logs(row).toJSON());
+
+      return success(res, 'Employees fetched successfully', logs);
+    } catch (err) {
+    next(err);
+  }
+}

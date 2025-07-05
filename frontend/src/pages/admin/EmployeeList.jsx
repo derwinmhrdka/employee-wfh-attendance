@@ -4,7 +4,6 @@ import { FaEye, FaEdit } from 'react-icons/fa'
 import EmployeeModal from '../components/EmployeeModal'
 import { useNavigate } from 'react-router-dom'
 
-
 export default function EmployeeListAdmin() {
   const [employees, setEmployees] = useState([])
   const [showModal, setShowModal] = useState(false)
@@ -12,35 +11,46 @@ export default function EmployeeListAdmin() {
   const [photo, setPhoto] = useState(null)
   const [filterId, setFilterId] = useState('')
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
+
   const token = localStorage.getItem('token')
   const headers = { Authorization: `Bearer ${token}` }
 
   const navigate = useNavigate()
 
-  const fetchEmployees = async (employeeId) => {
+  const fetchEmployees = async (employeeId, name) => {
     try {
-      const url = employeeId
-        ? `${import.meta.env.VITE_API_URL}/admin/employee?employeeId=${employeeId}`
-        : `${import.meta.env.VITE_API_URL}/admin/employee`
+      let url = `${import.meta.env.VITE_API_URL}/admin/employee`;
 
-      const res = await axios.get(url, { headers })
-      setEmployees(res.data.data)
+      const params = [];
+      if (employeeId) params.push(`employeeId=${employeeId}`);
+      if (name) params.push(`name=${name}`);
+      if (params.length) url += `?${params.join('&')}`;
+
+      const res = await axios.get(url, { headers });
+      setEmployees(res.data.data);
+      setCurrentPage(1);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
-  }
+  };
 
   useEffect(() => {
     fetchEmployees()
   }, [])
 
   const handleFilter = () => {
-    if (filterId.trim() === '') {
-      fetchEmployees()
+    const trimmed = filterId.trim();
+
+    if (trimmed === '') {
+      fetchEmployees();
+    } else if (!isNaN(trimmed)) {
+      fetchEmployees(trimmed, null);
     } else {
-      fetchEmployees(filterId)
+      fetchEmployees(null, trimmed);
     }
-  }
+  };
 
   const openAddModal = () => {
     setEditData({})
@@ -70,8 +80,18 @@ export default function EmployeeListAdmin() {
     e.preventDefault()
     try {
       const formData = new FormData()
-      Object.entries(editData).forEach(([key, val]) => formData.append(key, val))
+      Object.entries(editData).forEach(([key, val]) => {
+        if (key !== 'employeeId') {
+          formData.append(key, val);
+        }
+      });
+      
       if (photo) formData.append('photo', photo)
+
+      console.log('Sending FormData:');
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ':', pair[1]);
+      }
 
       if (editData.employeeId) {
         await axios.patch(`${import.meta.env.VITE_API_URL}/admin/employee/${editData.employeeId}`, formData, { headers })
@@ -93,11 +113,19 @@ export default function EmployeeListAdmin() {
 
   const handleLogout = () => {
     localStorage.removeItem('token')
-    window.location.href = '/login' // Ganti sesuai route login kamu
+    window.location.href = '/login'
   }
 
-  const handleBack = () => {
-    window.history.back()
+  const totalPages = Math.ceil(employees.length / itemsPerPage)
+  const startIdx = (currentPage - 1) * itemsPerPage
+  const currentData = employees.slice(startIdx, startIdx + itemsPerPage)
+
+  const handlePrev = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1)
+  }
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1)
   }
 
   return (
@@ -111,68 +139,112 @@ export default function EmployeeListAdmin() {
         </button>
       </div>
 
-      <div className="d-flex justify-content-between mb-3">
+      <div className="d-flex justify-content-between mb-3 align-items-center">
         <h4>Employee List</h4>
-        <div>
-          <button className="btn btn-primary" onClick={openAddModal}>
-            Add Employee
-          </button>
-        </div>
       </div>
 
-      <div className="mb-3">
-        <div className="input-group">
+      <div className="mb-3 d-flex justify-content-between flex-wrap align-items-center">
+        <div className="input-group" style={{ maxWidth: '400px' }}>
           <input
-            type="number"
+            type="text"
             className="form-control"
-            placeholder="Filter by Employee ID"
+            placeholder="Filter by Employee ID or Name"
             value={filterId}
             onChange={(e) => setFilterId(e.target.value)}
           />
           <button className="btn btn-secondary" onClick={handleFilter}>
             Search
           </button>
-          <button className="btn btn-outline-secondary" onClick={() => { setFilterId(''); fetchEmployees(); }}>
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => {
+              setFilterId('')
+              fetchEmployees()
+            }}
+          >
             Reset
           </button>
         </div>
+
+        <button className="btn btn-primary ms-auto mt-2 mt-md-0" onClick={openAddModal}>
+          Add Employee
+        </button>
       </div>
 
-      <table className="table table-bordered">
-        <thead>
+
+      <table className="table table-bordered align-middle">
+        <thead className="table-light text-center">
           <tr>
-            <th>ID - Name</th>
-            <th>Email</th>
-            <th>Position</th>
-            <th>Phone</th>
-            <th>Actions</th>
+            <th style={{ backgroundColor: '#d9d9d9' }}>ID - Name</th>
+            <th style={{ backgroundColor: '#d9d9d9' }}>Email</th>
+            <th style={{ backgroundColor: '#d9d9d9' }}>Position</th>
+            <th style={{ backgroundColor: '#d9d9d9' }}>Phone</th>
+            <th style={{ backgroundColor: '#d9d9d9' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {employees.map((emp) => (
+          {currentData.map((emp) => (
             <tr key={emp.employeeId}>
-              <td>00{emp.employeeId} - {emp.name}</td>
-              <td>{emp.email}</td>
-              <td>{emp.position}</td>
-              <td>{emp.phone}</td>
-              <td>
-                <button
-                  className="btn btn-sm btn-outline-info me-2"
-                  onClick={() => navigate(`/admin/${emp.employeeId}/logs`)}
-                >
-                  <FaEye />
-                </button>
-                <button
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={() => openEditModal(emp.employeeId)}
-                >
-                  <FaEdit />
-                </button>
+              <td style={{ maxWidth: '200px', wordBreak: 'break-word' }}>
+                00{emp.employeeId} - {emp.name}
+              </td>
+              <td style={{ maxWidth: '200px', wordBreak: 'break-word' }}>
+                {emp.email}
+              </td>
+              <td style={{ maxWidth: '150px', wordBreak: 'break-word' }}>
+                {emp.position}
+              </td>
+              <td style={{ maxWidth: '120px', wordBreak: 'break-word' }}>
+                {emp.phone}
+              </td>
+              <td
+                style={{
+                  maxWidth: '100px',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                }}
+              >
+                <div className="d-flex justify-content-center gap-2 flex-wrap">
+                  <button
+                    className="btn btn-sm btn-outline-info"
+                    onClick={() => navigate(`/admin/${emp.employeeId}/logs`)}
+                  >
+                    <FaEye />
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => openEditModal(emp.employeeId)}
+                  >
+                    <FaEdit />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-between align-items-center mt-2">
+          <button
+            className="btn btn-outline-primary btn-sm"
+            onClick={handlePrev}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <small>
+            Page {currentPage} of {totalPages}
+          </small>
+          <button
+            className="btn btn-outline-primary btn-sm"
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       <EmployeeModal
         show={showModal}
@@ -184,6 +256,7 @@ export default function EmployeeListAdmin() {
         setPhoto={setPhoto}
         context="admin"
         isEdit={!!editData.employeeId}
+        profilePhoto={editData.photo} 
       />
     </div>
   )

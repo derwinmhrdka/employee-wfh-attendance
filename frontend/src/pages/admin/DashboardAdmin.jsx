@@ -1,8 +1,9 @@
-import React from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export default function DashboardAdmin() {
     const navigate = useNavigate()
+    const [currentTime, setCurrentTime] = useState(new Date())
 
     const handleLogout = () => {
         localStorage.removeItem('token')
@@ -10,6 +11,14 @@ export default function DashboardAdmin() {
     }
 
     const adminName = localStorage.getItem('name') || 'Admin'
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000) 
+
+    return () => clearInterval(interval) 
+  }, [])
 
   const today = new Date()
   const formattedDate = today.toLocaleDateString('en-US', {

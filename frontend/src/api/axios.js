@@ -5,10 +5,14 @@ const instance = axios.create({
 });
 
 instance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const publicEndpoints = ['/auth/employee/login', '/auth/admin/login'];
+  if (!publicEndpoints.some(path => config.url.includes(path))) {
+    const token = localStorage.getItem("token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
+
 
 instance.interceptors.response.use(
   (response) => response, 

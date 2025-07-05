@@ -1,6 +1,7 @@
 const prisma = require('../config/prismaClient');
 const bcrypt = require('bcrypt');
 const { success, error } = require('../utils/responseHelper');
+const timeHelper = require('../utils/timeHelper');
 const logger = require('../utils/logger');
 const User = require('../models/userModel');
 const Attendance = require('../models/attendanceModel');
@@ -8,14 +9,23 @@ const Logs = require('../models/logModel');
 
 exports.getEmployees = async (req, res, next) => {
   try {
-    const { employeeId } = req.query;
+    const { employeeId, name } = req.query;
 
-    const whereClause = employeeId
-      ? { employee_id: Number(employeeId) }
-      : undefined;
+    const whereClause = {};
+
+    if (employeeId) {
+      whereClause.employee_id = Number(employeeId);
+    }
+
+    if (name) {
+      whereClause.name = {
+        contains: name,
+        mode: 'insensitive'
+      };
+    }
 
     const result = await prisma.user.findMany({
-      where: whereClause,
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
       orderBy: {
         employee_id: 'asc',
       },
@@ -31,6 +41,14 @@ exports.getEmployees = async (req, res, next) => {
       }
     });
 
+    if (result.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No employee data found",
+        data: null,
+      });
+    }
+
     const employees = result.map(row => new User(row).toJSON());
 
     return success(res, 'Employees fetched successfully', employees);
@@ -39,6 +57,7 @@ exports.getEmployees = async (req, res, next) => {
     next(err);
   }
 };
+
 
 exports.createEmployee = async (req, res, next) => {
   try {
@@ -57,7 +76,7 @@ exports.createEmployee = async (req, res, next) => {
     });
 
     if (check) {
-      return error(res, 'Email already exists.', 409);
+      return error(res, 'Email already exists.', 400);
     }
 
     if (!password) {
@@ -98,14 +117,9 @@ exports.createEmployee = async (req, res, next) => {
 
 exports.editEmployee = async (req, res, next) => {
   try {
-    const admin = req.user;
     const { employeeId } = req.params;
-    const { name, phone, position, status, password } = req.body;
+    const { name, phone, position, status, isAdmin, password } = req.body;
     const photoPath = req.file ? req.file.filename : null;
-
-    if (!admin?.isAdmin) {
-      return error(res, 'Forbidden: Only admin can edit employees.', 403);
-    }
 
     if (!employeeId) {
       return error(res, 'employeeId is required in URL params.', 400);
@@ -118,12 +132,23 @@ exports.editEmployee = async (req, res, next) => {
     if (photoPath) updateData.photo = photoPath;
     if (position) updateData.position = position;
     if (status) updateData.status = status.toLowerCase();
+    if (typeof isAdmin !== 'undefined') {
+      updateData.is_admin = isAdmin === 'true' || isAdmin === true;
+    }
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
     }
 
     if (Object.keys(updateData).length === 0) {
       return error(res, 'No fields to update.', 400);
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { employee_id: Number(employeeId) },
+    });
+
+    if (!existing) {
+      return error(res, 'Employee not found.', 404);
     }
 
     const result = await prisma.user.update({
@@ -150,32 +175,40 @@ exports.editEmployee = async (req, res, next) => {
 
 exports.getAttendances = async (req, res, next) => {
   try {
-    const admin = req.user;
-    const { employeeId, dateFrom, dateTo } = req.query;
-
-    if (!admin?.isAdmin) {
-      return error(res, 'Forbidden: Only admin can fetch attendance records.', 403);
-    }
+    const {name, employeeId, dateFrom, dateTo } = req.query;
 
     if ((dateFrom && !dateTo) || (!dateFrom && dateTo)) {
       return error(res, 'Both dateFrom and dateTo must be provided together.', 400);
     }
 
-    const where = {};
+    if (dateFrom > dateTo) {
+      return error(res, 'dateFrom must be greater than dateTo', 400);
+    }
+
+    const whereClause = {};
 
     if (employeeId) {
-      where.employee_id = Number(employeeId);
+      whereClause.employee_id = Number(employeeId);
+    }
+
+    if (name) {
+      whereClause.user = {
+        name: {
+          contains: name,
+          mode: 'insensitive',
+        },
+      };
     }
 
     if (dateFrom && dateTo) {
-      where.date = {
+      whereClause.date = {
         gte: new Date(dateFrom),
         lte: new Date(dateTo),
       };
     }
 
     const result = await prisma.attendance.findMany({
-      where,
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
       include: {
         user: {
           select: {
@@ -191,10 +224,19 @@ exports.getAttendances = async (req, res, next) => {
       ]
     });
 
+    if (result.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No attendance data found",
+        data: null,
+      });
+    }
+
     const attendance = result.map(row => {
       const plain = new Attendance(row).toJSON();
       return {
         ...plain,
+        date: row.date ? timeHelper(row.date).tz('Asia/Jakarta').format('YYYY-MM-DD') : null,
         name: row.user?.name || null
       };
     });
@@ -226,6 +268,14 @@ exports.getLogs = async (req, res, next) => {
         updated_at: true,
       }
     });
+
+    if (result.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No logs found",
+        data: null,
+      });
+    }
 
     const logs = result.map(row => new Logs(row).toJSON());
 

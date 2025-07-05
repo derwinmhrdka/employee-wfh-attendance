@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/employee/DashboardEmployee";
-import AttendanceSummary from "./pages/employee/AttendanceSummary";
-import DashboardAdmin from './pages/admin/DashboardAdmin'
-import EmployeeListAdmin from "./pages/admin/EmployeeList";
-import EmployeeAttendanceAdmin from "./pages/admin/EmployeeAttendance";
-import EmployeeLogs from './pages/admin/EmployeeLogs'
+import LoginPage from "../pages/LoginPage";
+import DashboardPage from "../pages/employee/DashboardEmployee";
+import AttendanceSummary from "../pages/employee/AttendanceSummary";
+import DashboardAdmin from '../pages/admin/DashboardAdmin'
+import EmployeeListAdmin from "../pages/admin/EmployeeList";
+import EmployeeAttendanceAdmin from "../pages/admin/EmployeeAttendance";
+import EmployeeLogs from '../pages/admin/EmployeeLogs'
 
 
 

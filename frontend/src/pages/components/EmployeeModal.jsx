@@ -1,5 +1,5 @@
 import React from 'react'
-import { FaEdit } from 'react-icons/fa'
+import { FaEdit   } from 'react-icons/fa'
 
 export default function EmployeeModal({
   show,
@@ -53,7 +53,7 @@ export default function EmployeeModal({
                 <div className="mb-3 d-flex justify-content-center">
                   <div style={{ position: 'relative', display: 'inline-block' }}>
                     <img 
-                        key={photo ? photo.name : profilePhoto}
+                      key={photo ? photo.name : profilePhoto}
                       src={
                         photo
                           ? URL.createObjectURL(photo)
@@ -77,15 +77,13 @@ export default function EmployeeModal({
                         position: 'absolute',
                         bottom: 0,
                         right: 0,
-                        backgroundColor: '#007bff',
-                        color: '#fff',
-                        borderRadius: '50%',
-                        padding: '5px',
+                        color: '#007bff',
                         cursor: 'pointer',
-                        fontSize: '12px'
+                        fontSize: '18px',
+                        padding: 3,
                       }}
                     >
-                      <FaEdit />
+                      <FaEdit  />
                     </span>
                   </div>
                   <input
@@ -108,6 +106,7 @@ export default function EmployeeModal({
                     value={data.name || ''}
                     onChange={handleInputChange}
                     required
+                    maxLength={50}
                   />
                 </div>
 
@@ -120,6 +119,7 @@ export default function EmployeeModal({
                     value={data.email || ''}
                     onChange={handleInputChange}
                     required
+                    maxLength={50}
                   />
                 </div>
 
@@ -145,7 +145,15 @@ export default function EmployeeModal({
                     name="phone"
                     className="form-control"
                     value={data.phone || ''}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      const onlyNums = e.target.value.replace(/[^0-9]/g, '');
+                      setData({
+                        ...data,
+                        phone: onlyNums
+                      });
+                    }}
+                    maxLength={20}
+                    placeholder="Enter phone number"
                   />
                 </div>
 
@@ -158,6 +166,7 @@ export default function EmployeeModal({
                         className="form-select"
                         value={data.status || ''}
                         onChange={handleInputChange}
+                        required
                       >
                         <option value="">-- Select Status --</option>
                         <option value="active">Active</option>

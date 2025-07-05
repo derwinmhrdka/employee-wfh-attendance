@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { FaEdit } from 'react-icons/fa'
 import EmployeeModal from '../components/EmployeeModal'
 
 export default function DashboardEmployeePage() {
@@ -62,8 +61,10 @@ export default function DashboardEmployeePage() {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
+      hour12: false, 
     })
   }
+
 
   const formatTime = (timeString) => {
     if (!timeString) return '-'
@@ -71,6 +72,7 @@ export default function DashboardEmployeePage() {
     return d.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false,
     })
   }
 
@@ -160,29 +162,31 @@ export default function DashboardEmployeePage() {
 
       {/* Card Profile & Attendance */}
       <div className="row d-flex align-items-start">
-        {/* Profile Card */}
         <div className="col-md-6 mb-4 px-3">
           <div className="card h-100">
             <div className="card-header">Employee Profile</div>
             <div className="card-body text-center">
-              {profile?.photo && (
-                <div className="mb-3 d-flex justify-content-center">
+              <div className="mb-3 d-flex justify-content-center">
                   <img
-                    src={`${import.meta.env.VITE_BASE_URL}/uploads/profile/${profile.photo}`}
+                    src={
+                      profile?.photo
+                        ? `${import.meta.env.VITE_BASE_URL}/uploads/profile/${profile.photo}`
+                        : `${import.meta.env.VITE_BASE_URL}/uploads/profile/default.png`
+                    }
                     alt="Employee"
                     className="rounded-circle border border-3"
                     style={{ width: '150px', height: '150px', objectFit: 'cover' }}
                   />
                 </div>
-              )}
               <h5>{profile?.name}</h5>
               <p>{profile?.email}</p>
+              <hr />
               <div className="d-flex justify-content-between mt-3">
-                <span><strong>Position:</strong></span>
+                <span><strong>Position</strong></span>
                 <span>{profile?.position}</span>
               </div>
               <div className="d-flex justify-content-between mt-2 mb-4">
-                <span><strong>Phone:</strong></span>
+                <span><strong>Phone</strong></span>
                 <span>{profile?.phone}</span>
               </div>
               <div>

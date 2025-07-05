@@ -22,20 +22,22 @@ export default function LoginPage() {
 
     try {
       const res = await axios.post(endpoint, { email, password })
-
+      
       localStorage.setItem('token', res.data.data.token)
 
       if (role === 'Admin') {
-        localStorage.setItem('name', res.data.data.admin.name) 
+        localStorage.setItem('name', res.data.data.user.name) 
         navigate('/dashboard-admin')
       } else {
         navigate('/dashboard')
       }
-
     } catch (err) {
       console.error(err)
-      alert('Login failed. Check credentials.')
-    } finally {
+      if (err.response) {
+         alert(err.response.data.message || 'Login failed.');
+      } else {
+        alert('Network error.');
+      }
       setLoading(false)
     }
   }

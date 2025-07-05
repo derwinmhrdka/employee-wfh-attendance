@@ -21,6 +21,12 @@ exports.loginEmployee = async (req, res, next) => {
     }
 
     const user = new User(result);
+
+    if (user.status != "active") {
+      logger.warn(`[Auth] Employee login failed: User is not active ${email}`);
+      return error(res, 'User not active', 401);
+    }
+
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       logger.warn(`[Auth] Employee login failed: Invalid password for ${email}`);
@@ -68,11 +74,17 @@ exports.loginAdmin = async (req, res, next) => {
     });
 
     if (!result) {
-      logger.warn(`[Auth] Admin login failed: User not found for ${email}`);
-      return error(res, 'User not found', 401);
+      logger.warn(`[Auth] Admin login failed: User not found or not admin for ${email}`);
+      return error(res, 'User not found or not admin', 401);
     }
 
     const user = new User(result);
+
+    if (user.status != "active") {
+      logger.warn(`[Auth] Admin login failed: User is not active ${email}`);
+      return error(res, 'User not active', 401);
+    }
+
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       logger.warn(`[Auth] Admin login failed: Invalid password for ${email}`);

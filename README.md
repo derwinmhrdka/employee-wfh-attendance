@@ -1,4 +1,4 @@
-# 🗂️ Employee Remote Attendance System
+# 🗂️ WHATT - WFH Attendance Tracker
 
 Sebuah sistem absensi karyawan saat **Work From Home (WFH)**.  
 Aplikasi ini dapat diakses oleh **karyawan** dan **admin** dengan fitur-fitur berikut:
@@ -6,22 +6,36 @@ Aplikasi ini dapat diakses oleh **karyawan** dan **admin** dengan fitur-fitur be
 ---
 
 ## Fitur
+### Login page
+- Login sebagai admin dan employee
+  <img width="959" alt="image" src="https://github.com/user-attachments/assets/31bcf0df-b368-4c4a-9e25-970ff48a4547" />
 
 ### Admin
 - **Manajemen Karyawan**
   - Menambah profil karyawan baru
+    <img width="959" alt="image" src="https://github.com/user-attachments/assets/00843d47-7c3c-4fae-84ab-23213eda8fc6" />
+
   - Mengubah data karyawan
-  - Melihat data absensi karyawan
-  - Melihat log perubahan data karyawan
+    <img width="959" alt="image" src="https://github.com/user-attachments/assets/c5cd633e-0e5f-49bb-b399-201d6eec377a" />
+
+  - Melihat log perubahan data karyawan menggunakan fitur rabbitMQ (_*password di hash_)
+    <img width="959" alt="image" src="https://github.com/user-attachments/assets/1ec540c4-2cd6-4172-9c4d-e0dce14ab6f4" />
+
 - **Manajemen Absensi**
   - Melihat seluruh data clock in & clock out karyawan
+    <img width="959" alt="image" src="https://github.com/user-attachments/assets/3358b8b0-83ef-45ff-98c9-f81d6b298a8e" />
 
 ### Karyawan
-- **Absensi**
-  - Clock in & clock out mandiri
-  - Melihat ringkasan absensi pribadi
-  - Mengubah profil pribadi
+- **Absensi & Profile**
+  - Dashboard karyawan dengan konten clock in & clock out, dan ringkasan profil
+    <img width="959" alt="image" src="https://github.com/user-attachments/assets/7e228e76-26e9-433d-b3a3-2a5680fe5159" />
 
+  - Melihat attendance summary
+    <img width="959" alt="image" src="https://github.com/user-attachments/assets/1d89c718-5599-4366-9992-842dc616b04f" />
+
+  - Mengubah profil pribadi
+    <img width="958" alt="image" src="https://github.com/user-attachments/assets/85761e71-7f21-487c-aad2-40f136da99b0" />
+    
 ---
 
 ## Tech Stack

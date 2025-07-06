@@ -18,7 +18,7 @@ router.post('/admin/login', validateLogin, authController.loginAdmin);
 // Logout current session
 router.post('/logout', verifyToken, authController.logout);
 
-// Admin: List active sessions for employeeId (self or others)
+// Admin: List active sessions 
 router.get('/sessions', verifyToken, authController.listSessions);
 
 // Admin: Revoke specific session by employeeId & sessionId

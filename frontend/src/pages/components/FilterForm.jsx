@@ -43,9 +43,9 @@ export default function FilterForm({
       const res = await axios.get(apiEndpoint, { headers, params })
 
       const data =
-        mode === 'employee' 
-        ? res.data.data.summary 
-        : res.data.data?.data || res.data.data; 
+        mode === 'employee'
+          ? res.data.data.summary
+          : res.data.data?.data || res.data.data
 
       setAttendanceList(data)
     } catch (err) {
@@ -60,23 +60,9 @@ export default function FilterForm({
     fetchAttendance()
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    window.location.href = '/login'
-  }
-
   return (
-    <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <button className="btn btn-danger" onClick={() => window.history.back()}>
-          Back
-        </button>
-        <button className="btn btn-secondary" onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
-
-      <h3 className="mb-3">{title}</h3>
+    <div className="card p-4 shadow">
+      <h4 className="mb-4">{title}</h4>
 
       <div className="mb-3 d-flex align-items-center flex-wrap">
         {mode === 'admin' && (
@@ -109,6 +95,7 @@ export default function FilterForm({
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
         />
+
         <button className="btn btn-primary me-2" onClick={fetchAttendance}>
           Search
         </button>

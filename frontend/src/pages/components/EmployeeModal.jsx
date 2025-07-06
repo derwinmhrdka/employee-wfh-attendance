@@ -1,5 +1,4 @@
 import React from 'react'
-import { FaEdit   } from 'react-icons/fa'
 
 export default function EmployeeModal({
   show,
@@ -25,7 +24,6 @@ export default function EmployeeModal({
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="modal-backdrop show"
         style={{
@@ -49,7 +47,6 @@ export default function EmployeeModal({
               </div>
 
               <div className="modal-body">
-                {/* Foto */}
                 <div className="mb-3 d-flex justify-content-center">
                   <div style={{ position: 'relative', display: 'inline-block' }}>
                     <img 
@@ -61,6 +58,10 @@ export default function EmployeeModal({
                             ? `${import.meta.env.VITE_BASE_URL}/uploads/profile/${profilePhoto}`
                             : `${import.meta.env.VITE_BASE_URL}/uploads/profile/default.png`
                       }
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src = `${import.meta.env.VITE_BASE_URL}/uploads/profile/default.png`
+                      }}
                       alt="Preview"
                       className="rounded-circle border border-3"
                       style={{
@@ -83,7 +84,7 @@ export default function EmployeeModal({
                         padding: 3,
                       }}
                     >
-                      <FaEdit  />
+                      <i className="bi bi-pencil-fill"></i>
                     </span>
                   </div>
                   <input
@@ -226,3 +227,4 @@ export default function EmployeeModal({
     </>
   )
 }
+  

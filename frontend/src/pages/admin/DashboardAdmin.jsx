@@ -1,50 +1,30 @@
-import { useEffect, useState } from 'react'
+import Header from '../components/Header'
 import { useNavigate } from 'react-router-dom'
 
 export default function DashboardAdmin() {
-    const navigate = useNavigate()
-    const [currentTime, setCurrentTime] = useState(new Date())
-
-    const handleLogout = () => {
-        localStorage.removeItem('token')
-        navigate('/login')
-    }
-
-    const adminName = localStorage.getItem('name') || 'Admin'
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000) 
-
-    return () => clearInterval(interval) 
-  }, [])
-
-  const today = new Date()
-  const formattedDate = today.toLocaleDateString('en-US', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
-  const formattedTime = today.toLocaleTimeString()
+  const navigate = useNavigate()
+  const adminName = localStorage.getItem('name') || 'Admin'
 
   return (
-    <div className="container mt-4">
-      {/* Header */}
-      <div className="mb-2 text-end">
-        <button className="btn btn-secondary mb-2" onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
-      <div className="d-flex justify-content-between align-items-center mb-2 px-2">
-        <h5 className="mb-0">Hi, {adminName}</h5>
-        <p className="mb-0">{formattedDate} {formattedTime}</p>
+    <div
+      className="container-fluid vh-100"
+      style={{
+        background: 'linear-gradient(135deg, #d0e8f2 0%, #ffffff 100%)',
+        padding: '2rem',
+      }}
+    >
+      <Header />
+
+      <div className="mb-4">
+        <h5>Hi, {adminName}</h5>
       </div>
 
-      <div className="card p-4 text-center mx-auto" style={{ width: '60%', marginTop: '50px' }}>
-        <h6 className="mb-3">Dashboard Admin</h6>
-        <div className="d-grid gap-3 mx-auto" style={{ width: '60%'}}>
+      <div
+        className="card p-4 text-center mx-auto shadow"
+        style={{ maxWidth: '600px' }}
+      >
+        <h6 className="mb-4 card-title">Dashboard Admin</h6>
+        <div className="d-grid gap-3 mx-auto" style={{ width: '60%' }}>
           <button
             className="btn btn-primary"
             onClick={() => navigate('/admin/attendance')}

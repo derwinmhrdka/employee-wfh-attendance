@@ -6,20 +6,50 @@ services:
     container_name: employee_db
     restart: always
     env_file:
-      - .env.docker
+      - backend/.env.docker
     ports:
       - "5433:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
-  
+
   rabbitmq:
     image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
     ports:
-      - "5672:5672" 
-      - "15672:15672" 
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--requirepass", "@dm1n"]
+
+  backend:
+    build: ./backend
+    container_name: backend
+    env_file:
+      - backend/.env.docker
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - redis
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
 
 volumes:
   db_data:

@@ -1,0 +1,22 @@
+# Backend Dockerfile
+
+FROM node:18
+
+# Create app directory
+WORKDIR /app
+
+# Install app dependencies
+COPY package*.json ./
+COPY prisma ./prisma
+
+RUN npm install
+
+# Copy app source
+COPY . .
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+EXPOSE 5000
+
+CMD ["npm", "run", "dev"]

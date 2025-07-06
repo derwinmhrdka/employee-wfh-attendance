@@ -126,8 +126,3 @@ Running seed data ini untuk mendapatkan data user starter:
 ---
 
 ## ✅ Selesai!
-
-Project-mu kini siap **langsung jalan di PC manapun** dengan sekali `docker compose up`.
-Kalau mau, bisa deploy ke server dengan Docker Swarm atau ECS dengan sedikit modifikasi.
-
----

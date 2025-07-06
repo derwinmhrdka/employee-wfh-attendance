@@ -93,6 +93,14 @@ export default function DashboardEmployeePage() {
   const handleSave = async (e) => {
     e.preventDefault()
 
+    if (
+    (editData.oldPassword && !editData.newPassword) ||
+    (!editData.oldPassword && editData.newPassword)
+    ) {
+      alert('Both password should inputted')
+      return
+    }
+
     const formData = new FormData()
     formData.append('phone', editData.phone)
     if (photo) formData.append('photo', photo)

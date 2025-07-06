@@ -1,33 +1,61 @@
 const jwt = require('jsonwebtoken');
+const redis = require('../config/redis');
+const logger = require('../utils/logger');
+const prisma = require('../config/prismaClient');
 
-exports.verifyToken = (req, res, next) => {
+exports.verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next({
-      status: 401,
-      message: 'No token provided or malformed'
-    });
+    return res.status(401).json({ message: 'No token provided or malformed' });
   }
 
   const token = authHeader.split(' ')[1];
 
-  if (!token) {
-    return next({
-      status: 401,
-      message: 'Invalid token format'
-    });
-  }
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+
+    const user = await prisma.user.findUnique({
+      where: { employee_id: decoded.employeeId },
+      select: {
+        employee_id: true,
+        name: true,
+        is_admin: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid token user.' });
+    }
+
+    const { sessionId } = decoded;
+    const sessionKey = `session:${user.employee_id}:${sessionId}`;
+    const session = await redis.get(sessionKey);
+
+    if (!session) {
+      logger.warn(`[Middleware] Session not found or expired for employeeId=${user.employee_id}`);
+      return res.status(401).json({ message: 'Unauthorized: Invalid session' });
+    }
+
+    req.user = {
+      employeeId: user.employee_id, 
+      name: user.name,
+      isAdmin: user.is_admin,
+      sessionId: decoded.sessionId  
+    };
     next();
   } catch (err) {
-    console.error('JWT Verify Error:', err.message);
-    return next({
-      status: 401,
-      message: 'Invalid or expired token'
+    logger.warn(`[Middleware] Invalid or expired JWT: ${err.message}`);
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
+};
+
+exports.checkAdmin = (req, res, next) => {
+  if (!req.user.isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: 'Forbidden. Admins only.',
     });
   }
+  next();
 };

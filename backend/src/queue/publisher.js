@@ -1,13 +1,67 @@
-const { connectRabbitMQ } = require('../config/rabbitmq');
+const amqp = require('amqplib');
+const config = require('../config/config');
+const logger = require('../utils/logger');
+const QUEUE_NAME = 'update_profile_log';
 
-async function publish(queueName, message) {
-  const conn = await connectRabbitMQ();
-  const channel = await conn.createChannel();
+async function publishUpdateProfileLog(oldData, newData, employeeId) {
+  try {
+    oldData = oldData || {};
+    newData = newData || {};
 
-  await channel.assertQueue(queueName, { durable: true });
-  channel.sendToQueue(queueName, Buffer.from(JSON.stringify(message)));
+    const trackedFields = [
+      'name',
+      'email',
+      'phone',
+      'photo',
+      'password',
+      'position',
+      'active',
+      'status'
+    ];
 
-  console.log(`[x] Sent to ${queueName}:`, message);
+    const payloads = [];
+
+    for (const field of trackedFields) {
+      const oldValue = oldData[field] ?? null;
+      const newValue = newData[field] ?? null;
+
+      if (oldValue !== newValue) {
+        payloads.push({
+          employeeId: Number(employeeId),
+          old_value: oldValue,
+          new_value: newValue,
+          changed_field: field,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    logger.info('[Publisher] Payloads:', payloads);
+
+    if (payloads.length === 0) {
+      logger.info('[Publisher] No changes detected.');
+      return;
+    }
+
+    const connection = await amqp.connect(config.rabbitUrl);
+    const channel = await connection.createChannel();
+    await channel.assertQueue(QUEUE_NAME, { durable: true });
+
+    for (const payload of payloads) {
+      channel.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(payload)), {
+        persistent: true,
+      });
+      logger.info('[Publisher] Published change for:', payload.changed_field);
+    }
+
+    await channel.close();
+    await connection.close();
+
+    logger.info('[Publisher] All changes published to queue:', QUEUE_NAME);
+
+  } catch (err) {
+    logger.error('[Publisher] Failed:', err);
+  }
 }
 
-module.exports = { publish };
+module.exports = { publishUpdateProfileLog };
